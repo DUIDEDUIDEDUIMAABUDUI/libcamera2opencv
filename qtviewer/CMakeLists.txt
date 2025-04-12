@@ -5,24 +5,29 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 project(CamViewer
-	DESCRIPTION "Example QT application which displays the camera image"
-	LANGUAGES CXX)
+    DESCRIPTION "Example QT application with fatigue detection"
+    LANGUAGES CXX)
 
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 
-set (CMAKE_CXX_FLAGS "-Wall -Winvalid-pch -Wnon-virtual-dtor -Wextra -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "-Wall -Winvalid-pch -Wnon-virtual-dtor -Wextra -Wno-unused-parameter")
 
-find_package(PkgConfig)
-
+# Find dependencies
+find_package(PkgConfig REQUIRED)
 find_package(OpenCV REQUIRED)
-
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Find libcamera via pkg-config
 pkg_check_modules(LIBCAMERA REQUIRED IMPORTED_TARGET libcamera)
+
+# Optional: Qwt (already used by your QwtThermo)
+pkg_check_modules(QWT REQUIRED IMPORTED_TARGET qwt-qt5)
+
+# Print debug info
 message(STATUS "libcamera library found:")
 message(STATUS "    version: ${LIBCAMERA_VERSION}")
 message(STATUS "    libraries: ${LIBCAMERA_LINK_LIBRARIES}")
@@ -32,16 +37,28 @@ message(STATUS "opencv:")
 message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 
-include_directories(${CMAKE_SOURCE_DIR} ${LIBCAMERA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS})
+
+add_subdirectory(libcam2opencv)
+
+
+include_directories(${CMAKE_SOURCE_DIR}
+                    ${LIBCAMERA_INCLUDE_DIRS}
+                    ${OPENCV_INCLUDE_DIRS})
+
 include(GNUInstallDirs)
 
+
 add_executable(qtviewer
-  window.cpp
   main.cpp
+  window.cpp
+  fatigue_detector.cpp    
 )
 
-target_link_libraries(qtviewer PkgConfig::LIBCAMERA)
-target_link_libraries(qtviewer Qt5::Widgets)
-target_link_libraries(qtviewer qwt-qt5)
-target_link_libraries(qtviewer ${OpenCV_LIBS})
-target_link_libraries(qtviewer cam2opencv)
+# Link libraries
+target_link_libraries(qtviewer
+  PkgConfig::LIBCAMERA
+  Qt5::Widgets
+  PkgConfig::QWT         
+  ${OpenCV_LIBS}
+  cam2opencv             
+)
